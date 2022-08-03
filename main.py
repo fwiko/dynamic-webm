@@ -45,6 +45,10 @@ def shrinking_video(frame_count: int) -> list[float]:
     return [i for i in numpy.arange(1.0, 0.0, -(1.0 / frame_count))]
 
 
+def disappearing_video(frame_count: int) -> list[float]:
+    return [1] + [0 for _ in range(frame_count - 2)] + [1]
+
+
 def create_frames(input_path: str, frame_path: str) -> str:
     output_path = os.path.join(frame_path, "frame_%04d.jpg")
     proc = subprocess.run(
@@ -107,6 +111,8 @@ def resize_frames(
         frame_modifiers = bouncing_video(frame_count)
     elif modifier == 2:
         frame_modifiers = shrinking_video(frame_count)
+    elif modifier == 3:
+        frame_modifiers = disappearing_video(frame_count)
 
     execution_pool = Pool(processes=workers)
     execution_pool.map(
