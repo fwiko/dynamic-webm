@@ -101,8 +101,7 @@ def resize_frames(
 
     details = list(map(int, proc.stdout.decode("utf-8").split("\n")[0].split(",")))
 
-    width, height = details[0], details[1]
-    frame_count = details[2]
+    width, height, frame_count = details[0], details[1], details[2]
 
     if modifier == 1:
         frame_modifiers = bouncing_video(frame_count)
