@@ -19,10 +19,10 @@ def bouncing_video(frame_count: int) -> list[float]:
     ]
 
     frame_modifiers = [
-        1.0 - (n - s[1][0]) / (s[1][1] - s[1][0])
+        1.0 - (r - s[1][0]) / (s[1][1] - s[1][0])
         if s[0] % 2 != 0
-        else (n - s[1][0]) / (s[1][1] - s[1][0])
-        for n, s in zip(
+        else (r - s[1][0]) / (s[1][1] - s[1][0])
+        for r, s in zip(
             range(1, frame_count + 1),
             [
                 next(
