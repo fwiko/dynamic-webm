@@ -209,47 +209,47 @@ def main(input_file: str, modifier: int, workers: int) -> None:
     # create image for every frame in video
 
     print("- Creating Frames...")
-
     frame_rate = create_frames(input_file, "./temp/frames")
 
-    # resize frames
+    # resize frames based on chosen modifier
 
     print("- Resizing Frames...")
-
     resize_frames("./temp/frames", frame_rate, modifier, input_file, workers)
 
-    # convert frames to webm
+    # convert each frame to webm format
 
     print("- Converting Frames...")
-
     convert_frames("./temp/frames", frame_rate, workers)
 
-    # combine frames into video
+    # combine all webm frames into one video
 
     with open("input.txt", "w+") as f:
-        for path in os.listdir("./temp/frames"):
-            f.write(f"file '{os.path.join('./temp/frames', path)}'\n")
+        f.write(
+            "\n".join(
+                [
+                    f"file '{os.path.join('./temp/frames', path)}'"
+                    for path in os.listdir("./temp/frames")
+                ]
+            )
+        )
 
     print("- Combining Frames...")
-
     combine_frames("input.txt")
 
-    # add audio to video...
+    # add the audio from the original input to the output video
 
     print("- Adding Audio...")
-
     output_file_name = add_audio(input_file, "./temp/first_pass_output.webm")
 
-    # clean up
+    # delete temp files and concatenation input file
 
     print("- Perfoming Clean-Up...")
-
     os.remove("input.txt")
     shutil.rmtree("./temp")
 
-    # finished
+    # video is complete and has been output as `output_file_name`
 
-    print("- Video saved as: " + output_file_name)
+    print(f"- Video saved as {output_file_name}")
 
 
 if __name__ == "__main__":
