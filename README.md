@@ -6,6 +6,10 @@ Create a webm video that changes size when played in a web application.
 python main.py -i/--input <input_video> -m/--modifier <modification_option>
 ```
 
+- `-i/--input` - path for video to be modified
+- `-m/--modifier` - modification option
+- `-w/--workers` - number of workers to use for processing (default: CPU thread count)
+
 ### Modification Options
 
 - `1` - Create a "bouncing" video. The video will shrik and grow multiple times along the Y axis.

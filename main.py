@@ -274,7 +274,10 @@ if __name__ == "__main__":
         type=int,
         help="Number of workers/threads to run (defaults to CPU thread count)",
     )
+
     args = parser.parse_args()
+
     if args.workers is None:
         args.workers = os.cpu_count() or 1
+
     main(args.input, args.modifier, args.workers)
