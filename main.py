@@ -46,7 +46,7 @@ def shrinking_video(frame_count: int) -> list[float]:
 
 
 def disappearing_video(frame_count: int) -> list[float]:
-    return [1, *[0 for _ in range(frame_count - 2)], 1]
+    return [1, *[0 for _ in range(frame_count - 1)]]
 
 
 def create_frames(input_path: str, frame_path: str) -> str:
