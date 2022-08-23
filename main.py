@@ -10,18 +10,23 @@ from multiprocessing import Pool
 import numpy
 from PIL import Image
 
+# modes ---------------------------------------------------------------
+
 
 def bouncing_video(frame_count: int) -> list[float]:
-    loop_count = frame_count // 30  # maintain similar transition speed for all videos
+    loop_count = frame_count // 30
     frame_ranges = [
         (i, i + frame_count // (loop_count * 2))
         for i in range(0, frame_count, frame_count // (loop_count * 2))
     ]
 
     frame_modifiers = [
-        1.0 - (r - s[1][0]) / (s[1][1] - s[1][0])
-        if s[0] % 2 != 0
-        else (r - s[1][0]) / (s[1][1] - s[1][0])
+        [
+            1,
+            1.0 - (r - s[1][0]) / (s[1][1] - s[1][0])
+            if s[0] % 2 != 0
+            else (r - s[1][0]) / (s[1][1] - s[1][0]),
+        ]
         for r, s in zip(
             range(1, frame_count + 1),
             [
@@ -42,11 +47,14 @@ def bouncing_video(frame_count: int) -> list[float]:
 
 
 def shrinking_video(frame_count: int) -> list[float]:
-    return [i for i in numpy.arange(1.0, 0.0, -(1.0 / frame_count))]
+    return [[1, i] for i in numpy.arange(1.0, 0.0, -(1.0 / frame_count))]
 
 
 def disappearing_video(frame_count: int) -> list[float]:
-    return [1, *[0 for _ in range(frame_count - 1)]]
+    return [[1, 1], *[[0, 0] for _ in range(frame_count - 1)]]
+
+
+# helpers --------------------------------------------------------------
 
 
 def create_frames(input_path: str, frame_path: str) -> str:
@@ -58,23 +66,20 @@ def create_frames(input_path: str, frame_path: str) -> str:
     return re.findall(r"(\d+\.\d+|\d+) fps", proc.stderr.decode("utf-8"))[0]
 
 
+def ease_modifier(value: int, modifier: float) -> float:
+    return max(
+        round(value * (modifier**2 / (2.0 * (modifier**2 - modifier) + 1.0))), 1
+    )
+
+
 def resize_frame(frame_details: tuple) -> None:
     frame_path, frame_modifier = frame_details
 
     image = Image.open(frame_path)
     image = image.resize(
         (
-            image.width,
-            max(
-                round(
-                    image.height
-                    * (
-                        frame_modifier**2
-                        / (2.0 * (frame_modifier**2 - frame_modifier) + 1.0)
-                    )
-                ),
-                1,
-            ),
+            ease_modifier(image.width, frame_modifier[0]),
+            ease_modifier(image.height, frame_modifier[1]),
         ),
         Image.Resampling.LANCZOS,
     )
@@ -206,6 +211,9 @@ def add_audio(input_video: str, output_video: str) -> str:
     return output_file_name
 
 
+# main -----------------------------------------------------------------
+
+
 def main(input_file: str, modifier: int, workers: int) -> None:
     if os.path.exists("./temp"):
         shutil.rmtree(path="temp")
@@ -214,17 +222,17 @@ def main(input_file: str, modifier: int, workers: int) -> None:
 
     # create image for every frame in video
 
-    print("- Creating Frames...")
+    print("[+] Creating Frames...")
     frame_rate = create_frames(input_file, "./temp/frames")
 
     # resize frames based on chosen modifier
 
-    print("- Resizing Frames...")
+    print("[+] Resizing Frames...")
     resize_frames("./temp/frames", frame_rate, modifier, input_file, workers)
 
     # convert each frame to webm format
 
-    print("- Converting Frames...")
+    print("[+] Converting Frames...")
     convert_frames("./temp/frames", frame_rate, workers)
 
     # combine all webm frames into one video
@@ -239,23 +247,23 @@ def main(input_file: str, modifier: int, workers: int) -> None:
             )
         )
 
-    print("- Combining Frames...")
+    print("[+] Combining Frames...")
     combine_frames("input.txt")
 
     # add the audio from the original input to the output video
 
-    print("- Adding Audio...")
+    print("[+] Adding Audio...")
     output_file_name = add_audio(input_file, "./temp/first_pass_output.webm")
 
     # delete temp files and concatenation input file
 
-    print("- Perfoming Clean-Up...")
+    print("[+] Perfoming Clean-Up...")
     os.remove("input.txt")
     shutil.rmtree("./temp")
 
     # video is complete and has been output as `output_file_name`
 
-    print(f"- Video saved as {output_file_name}")
+    print(f"[+] Video saved as {output_file_name}")
 
 
 if __name__ == "__main__":
