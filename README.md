@@ -20,4 +20,6 @@ python main.py -i/--input <input_video> -m/--modifier <modification_option>
 ### Example Result
 
 `Bouncing Video`
+
+
 [example.webm](https://user-images.githubusercontent.com/45544056/182500464-c14adb3d-9396-4821-b89a-558e1dbdeca7.webm)
