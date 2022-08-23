@@ -13,7 +13,7 @@ from PIL import Image
 # modes ---------------------------------------------------------------
 
 
-def bouncing_video(frame_count: int) -> list[float]:
+def bounce(frame_count: int) -> list[float]:
     loop_count = frame_count // 30
     frame_ranges = [
         (i, i + frame_count // (loop_count * 2))
@@ -46,12 +46,19 @@ def bouncing_video(frame_count: int) -> list[float]:
     return frame_modifiers
 
 
-def shrinking_video(frame_count: int) -> list[float]:
+def shrink(frame_count: int) -> list[float]:
     return [[1, i] for i in numpy.arange(1.0, 0.0, -(1.0 / frame_count))]
 
 
-def disappearing_video(frame_count: int) -> list[float]:
+def disappear(frame_count: int) -> list[float]:
     return [[1, 1], *[[0, 0] for _ in range(frame_count - 1)]]
+
+
+def random_resize(frame_count: int) -> list[float]:
+    return [
+        [1, 1],
+        *[[random.random(), random.random()] for _ in range(frame_count - 1)],
+    ]
 
 
 # helpers --------------------------------------------------------------
@@ -113,11 +120,13 @@ def resize_frames(
     width, height, frame_count = details[0], details[1], details[2]
 
     if modifier == 1:
-        frame_modifiers = bouncing_video(frame_count)
+        frame_modifiers = bounce(frame_count)
     elif modifier == 2:
-        frame_modifiers = shrinking_video(frame_count)
+        frame_modifiers = shrink(frame_count)
     elif modifier == 3:
-        frame_modifiers = disappearing_video(frame_count)
+        frame_modifiers = disappear(frame_count)
+    elif modifier == 4:
+        frame_modifiers = random_resize(frame_count)
 
     execution_pool = Pool(processes=workers)
     execution_pool.map(
