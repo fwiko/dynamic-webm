@@ -13,51 +13,50 @@ from PIL import Image
 # modes ---------------------------------------------------------------
 
 
-def bounce(frame_count: int) -> list[float]:
+def bounce(frame_count: int, minimum_y_divisor: int) -> list[float]:
     loop_count = frame_count // 30
     frame_ranges = [
         (i, i + frame_count // (loop_count * 2))
         for i in range(0, frame_count, frame_count // (loop_count * 2))
     ]
 
-    frame_modifiers = [
-        [
-            1,
-            1.0 - (r - s[1][0]) / (s[1][1] - s[1][0])
-            if s[0] % 2 != 0
-            else (r - s[1][0]) / (s[1][1] - s[1][0]),
-        ]
-        for r, s in zip(
-            range(1, frame_count + 1),
-            [
-                next(
-                    (
-                        (i + 1, frame_ranges[i])
-                        for i in range(len(frame_ranges))
-                        if n - 1 in range(*frame_ranges[i])
-                    ),
-                    None,
-                )
-                for n in range(1, frame_count + 1)
-            ],
+    frame_modifiers = []
+    for i, r in enumerate(frame_ranges):
+        range_modifiers = (
+            numpy.linspace(1.0 / minimum_y_divisor, 1, r[1] - r[0])
+            if i % 2 != 0
+            else numpy.linspace(1, 1.0 / minimum_y_divisor, r[1] - r[0])
         )
-    ]
+        frame_modifiers.extend(zip([1] * len(range_modifiers), range_modifiers))
 
     return frame_modifiers
 
 
-def shrink(frame_count: int) -> list[float]:
-    return [[1, i] for i in numpy.arange(1.0, 0.0, -(1.0 / frame_count))]
+def shrink(frame_count: int, minimum_y_divisor: int) -> list[float]:
+    return [
+        [1, i]
+        for i in numpy.arange(
+            1.0,
+            1.0 / minimum_y_divisor,
+            -((1.0 - (1.0 / minimum_y_divisor)) / frame_count),
+        )
+    ]
 
 
 def disappear(frame_count: int) -> list[float]:
     return [[1, 1], *[[0, 0] for _ in range(frame_count - 1)]]
 
 
-def random_resize(frame_count: int) -> list[float]:
+def random_resize(frame_count: int, minimum_divisors: tuple[int]) -> list[float]:
     return [
         [1, 1],
-        *[[random.random(), random.random()] for _ in range(frame_count - 1)],
+        *[
+            [
+                random.uniform(1.0 / minimum_divisors[0], 1.0),
+                random.uniform(1.0 / minimum_divisors[1], 1.0),
+            ]
+            for _ in range(frame_count - 1)
+        ],
     ]
 
 
@@ -73,30 +72,39 @@ def create_frames(input_path: str, frame_path: str) -> str:
     return re.findall(r"(\d+\.\d+|\d+) fps", proc.stderr.decode("utf-8"))[0]
 
 
-def ease_modifier(value: int, modifier: float) -> float:
+def ease_modifier(value: int, modifier: float, t_progress: float) -> float:
+    # TODO: ease per section for bounce, accounting for min height value
     return max(
-        round(value * (modifier**2 / (2.0 * (modifier**2 - modifier) + 1.0))), 1
+        round(value * (modifier ** 2 / (2.0 * (modifier ** 2 - modifier) + 1.0))), 1
     )
 
 
 def resize_frame(frame_details: tuple) -> None:
-    frame_path, frame_modifier = frame_details
+
+    frame_path, frame_modifier, t_progress = frame_details
 
     image = Image.open(frame_path)
     image = image.resize(
         (
-            ease_modifier(image.width, frame_modifier[0]),
-            ease_modifier(image.height, frame_modifier[1]),
+            ease_modifier(image.width, frame_modifier[0], t_progress),
+            ease_modifier(image.height, frame_modifier[1], t_progress),
         ),
-        Image.Resampling.LANCZOS,
+        Image.LANCZOS,
     )
 
     image.save(frame_path)
 
 
 def resize_frames(
-    frame_dir: str, frame_rate: str, modifier: int, input_file: str, workers: int
+    frame_dir: str,
+    frame_rate: str,
+    modifier: int,
+    input_file: str,
+    workers: int,
+    minimums: tuple[int],
 ) -> None:
+
+    minimum_divisors = (100 // minimums[0], 100 // minimums[1])
 
     proc = subprocess.run(
         [
@@ -120,13 +128,15 @@ def resize_frames(
     width, height, frame_count = details[0], details[1], details[2]
 
     if modifier == 1:
-        frame_modifiers = bounce(frame_count)
+        frame_modifiers = bounce(frame_count, minimum_divisors[1])
     elif modifier == 2:
-        frame_modifiers = shrink(frame_count)
+        frame_modifiers = shrink(frame_count, minimum_divisors[1])
     elif modifier == 3:
         frame_modifiers = disappear(frame_count)
     elif modifier == 4:
-        frame_modifiers = random_resize(frame_count)
+        frame_modifiers = random_resize(frame_count, minimum_divisors)
+
+    t_progresses = numpy.linspace(0, 1, len(frame_modifiers))
 
     execution_pool = Pool(processes=workers)
     execution_pool.map(
@@ -134,6 +144,7 @@ def resize_frames(
         zip(
             [os.path.join(frame_dir, f) for f in os.listdir(frame_dir)],
             frame_modifiers,
+            t_progresses,
         ),
     )
 
@@ -223,7 +234,7 @@ def add_audio(input_video: str, output_video: str) -> str:
 # main -----------------------------------------------------------------
 
 
-def main(input_file: str, modifier: int, workers: int) -> None:
+def main(input_file: str, modifier: int, workers: int, minimums: tuple[int]) -> None:
     if os.path.exists("./temp"):
         shutil.rmtree(path="temp")
 
@@ -237,7 +248,7 @@ def main(input_file: str, modifier: int, workers: int) -> None:
     # resize frames based on chosen modifier
 
     print("[+] Resizing Frames...")
-    resize_frames("./temp/frames", frame_rate, modifier, input_file, workers)
+    resize_frames("./temp/frames", frame_rate, modifier, input_file, workers, minimums)
 
     # convert each frame to webm format
 
@@ -291,10 +302,23 @@ if __name__ == "__main__":
         type=int,
         help="Number of workers/threads to run (defaults to CPU thread count)",
     )
-
+    parser.add_argument(
+        "-mw",
+        "-min-width",
+        type=int,
+        default=1,
+        help="Use a percentage to specify the minimum width a frame can be modified to (defaults to 1%)",
+    )
+    parser.add_argument(
+        "-mh",
+        "-min-height",
+        type=int,
+        default=1,
+        help="Use a percentage to specify the minimum height a frame can be modified to (defaults to 1%)",
+    )
     args = parser.parse_args()
 
     if args.workers is None:
         args.workers = os.cpu_count() or 1
 
-    main(args.input, args.modifier, args.workers)
+    main(args.input, args.modifier, args.workers, (args.mw, args.mh))
