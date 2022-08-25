@@ -44,7 +44,7 @@ def shrink(frame_count: int, minimum_y_divisor: int) -> list[float]:
 
 
 def disappear(frame_count: int) -> list[float]:
-    return [[1, 1], *[[0, 0] for _ in range(frame_count - 1)]]
+    return [[1, 1], *[[0, 0]] * (frame_count - 1)]
 
 
 def random_resize(frame_count: int, minimum_divisors: tuple[int]) -> list[float]:
