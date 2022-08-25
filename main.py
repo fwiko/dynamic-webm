@@ -7,8 +7,9 @@ import string
 import subprocess
 from multiprocessing import Pool
 
-import numpy
+import numpy as np
 from PIL import Image
+
 
 # modes ---------------------------------------------------------------
 
@@ -23,9 +24,9 @@ def bounce(frame_count: int, minimum_y_divisor: int) -> list[float]:
     frame_modifiers = []
     for i, r in enumerate(frame_ranges):
         range_modifiers = (
-            numpy.linspace(1.0 / minimum_y_divisor, 1, r[1] - r[0])
+            np.linspace(1.0 / minimum_y_divisor, 1, r[1] - r[0])
             if i % 2 != 0
-            else numpy.linspace(1, 1.0 / minimum_y_divisor, r[1] - r[0])
+            else np.linspace(1, 1.0 / minimum_y_divisor, r[1] - r[0])
         )
         frame_modifiers.extend(zip([1] * len(range_modifiers), range_modifiers))
 
@@ -35,7 +36,7 @@ def bounce(frame_count: int, minimum_y_divisor: int) -> list[float]:
 def shrink(frame_count: int, minimum_y_divisor: int) -> list[float]:
     return [
         [1, i]
-        for i in numpy.arange(
+        for i in np.arange(
             1.0,
             1.0 / minimum_y_divisor,
             -((1.0 - (1.0 / minimum_y_divisor)) / frame_count),
@@ -136,7 +137,7 @@ def resize_frames(
     elif modifier == 4:
         frame_modifiers = random_resize(frame_count, minimum_divisors)
 
-    t_progresses = numpy.linspace(0, 1, len(frame_modifiers))
+    t_progresses = np.linspace(0, 1, len(frame_modifiers))
 
     execution_pool = Pool(processes=workers)
     execution_pool.map(
@@ -303,22 +304,21 @@ if __name__ == "__main__":
         help="Number of workers/threads to run (defaults to CPU thread count)",
     )
     parser.add_argument(
-        "-mw",
-        "-min-width",
+        "--minwidth",
         type=int,
         default=1,
         help="Use a percentage to specify the minimum width a frame can be modified to (defaults to 1%)",
     )
     parser.add_argument(
-        "-mh",
-        "-min-height",
+        "--minheight",
         type=int,
         default=1,
         help="Use a percentage to specify the minimum height a frame can be modified to (defaults to 1%)",
     )
+
     args = parser.parse_args()
 
     if args.workers is None:
         args.workers = os.cpu_count() or 1
 
-    main(args.input, args.modifier, args.workers, (args.mw, args.mh))
+    main(args.input, args.modifier, args.workers, (args.minwidth, args.minheight))
