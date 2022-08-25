@@ -7,8 +7,10 @@ python main.py -i/--input <input_video> -m/--modifier <modification_option>
 ```
 
 - `-i/--input` - path of video to be modified
-- `-m/--modifier` - modification option
+- `-m/--modifier` - choice of modification option
 - `-w/--workers` - number of workers to use for processing (default: CPU thread count)
+- `--minwidth` - minimum percantage of the original width a frame can be modified to
+- `--minheight` - minimum percantage of the original height a frame can be modified to
 
 ### Modification Options
 
