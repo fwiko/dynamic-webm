@@ -3,7 +3,7 @@
 Create a webm video that changes size when played in a web application.
 
 ```
-python main.py -i/--input <input_video> -m/--modifier <modification_option>
+python main.py -i/--input <input_video> -m/--modifier <modification_option> --ease
 ```
 
 - `-i/--input` path of video to be modified
@@ -21,5 +21,6 @@ python main.py -i/--input <input_video> -m/--modifier <modification_option>
 - `4` Create a "random" video. Video frames will change to random resolutions.
 
 ### Example Result
+Command used: `python main.py -i <video_path> -m 1 --minheight 0 --ease`
 
 [example.webm](https://user-images.githubusercontent.com/45544056/182500464-c14adb3d-9396-4821-b89a-558e1dbdeca7.webm)
