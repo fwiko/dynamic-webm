@@ -29,28 +29,20 @@ def modifier_bounce(
         r_size = r[1] - r[0]
         for j in range(r_size):
             progress = (j + 1) / r_size
-            if i % 2 == 0:
-                f_sizes.append(
-                    (
-                        f_width,
-                        int(
-                            f_height
-                            + ((f_height * min_y) - f_height)
-                            * (ease_step(progress) if ease else progress)
-                        ),
-                    )
+            f_sizes.append(
+                (
+                    f_width,
+                    int(
+                        f_height
+                        + ((f_height * min_y) - f_height)
+                        * (ease_step(progress) if ease else progress)
+                        if i % 2 == 0
+                        else f_height
+                        + ((f_height * min_y) - f_height)
+                        * (ease_step(1.0 - progress) if ease else 1.0 - progress)
+                    ),
                 )
-            else:
-                f_sizes.append(
-                    (
-                        f_width,
-                        int(
-                            f_height
-                            + ((f_height * min_y) - f_height)
-                            * (ease_step(1.0 - progress) if ease else 1.0 - progress)
-                        ),
-                    )
-                )
+            )
 
     return f_sizes
 
