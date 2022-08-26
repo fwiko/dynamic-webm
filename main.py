@@ -58,11 +58,9 @@ def modifier_bounce(
 def modifier_shrink(
     f_count: int, f_width: int, f_height: int, min_y: int, *, ease: bool = False
 ) -> list[float]:
-    frame_steps = list(
-        zip(
-            [f_width] * f_count,
-            list(map(lambda x: int(x * f_height), get_height_steps(f_count, min_y))),
-        )
+    frame_steps = zip(
+        [f_width] * f_count,
+        map(lambda x: int(x * f_height), get_height_steps(f_count, min_y)),
     )
 
     if not ease:
