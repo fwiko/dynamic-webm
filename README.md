@@ -3,7 +3,7 @@
 Create a webm video that changes size when played in a web application.
 
 ```
-python main.py -i/--input <input_video> -m/--modifier <modification_option>
+python main.py -i/--input <input_video> -m/--modifier <modification_option> --ease
 ```
 
 - `-i/--input` path of video to be modified
