@@ -34,11 +34,11 @@ def modifier_bounce(
                     f_width,
                     int(
                         f_height
-                        + ((f_height * min_y) - f_height)
+                        + (f_height * min_y - f_height)
                         * (ease_step(progress) if ease else progress)
                         if i % 2 == 0
                         else f_height
-                        + ((f_height * min_y) - f_height)
+                        + (f_height * min_y - f_height)
                         * (ease_step(1.0 - progress) if ease else 1.0 - progress)
                     ),
                 )
@@ -63,7 +63,7 @@ def modifier_shrink(
                 f_width,
                 int(
                     f_height
-                    + ((f_height * min_y) - f_height) * ease_step((i + 1) / f_count)
+                    + (f_height * min_y - f_height) * ease_step((i + 1) / f_count)
                 ),
             )
             for i in range(f_count)
