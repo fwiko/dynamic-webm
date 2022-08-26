@@ -1,113 +1,162 @@
 import argparse
+import multiprocessing
 import os
 import random
 import re
 import shutil
 import string
 import subprocess
-from multiprocessing import Pool
 
 import numpy as np
 from PIL import Image
 
 
-# modes ---------------------------------------------------------------
+# Modifiers ------------------------------------------------------------------
 
 
-def bounce(frame_count: int, minimum_y_divisor: int) -> list[float]:
-    loop_count = frame_count // 30
-    frame_ranges = [
-        (i, i + frame_count // (loop_count * 2))
-        for i in range(0, frame_count, frame_count // (loop_count * 2))
+def modifier_bounce(
+    f_count: int, f_width: int, f_height: int, min_y: float, *, ease: bool = False
+) -> list[float]:
+    loop_num = f_count // 30
+
+    f_ranges = [
+        (i, i + f_count // (loop_num * 2))
+        for i in range(0, f_count, f_count // (loop_num * 2))
     ]
 
-    frame_modifiers = []
-    for i, r in enumerate(frame_ranges):
-        range_modifiers = (
-            np.linspace(1.0 / minimum_y_divisor, 1, r[1] - r[0])
-            if i % 2 != 0
-            else np.linspace(1, 1.0 / minimum_y_divisor, r[1] - r[0])
+    f_sizes = []
+    for i, r in enumerate(f_ranges):
+        r_size = r[1] - r[0]
+        for j in range(r_size):
+            progress = (j + 1) / r_size
+            if i % 2 == 0:
+                f_sizes.append(
+                    (
+                        f_width,
+                        int(
+                            f_height
+                            + ((f_height * min_y) - f_height)
+                            * (ease_step(progress) if ease else progress)
+                        ),
+                    )
+                )
+            else:
+                f_sizes.append(
+                    (
+                        f_width,
+                        int(
+                            f_height
+                            + ((f_height * min_y) - f_height)
+                            * (ease_step(1.0 - progress) if ease else 1.0 - progress)
+                        ),
+                    )
+                )
+
+    return f_sizes
+
+
+def modifier_shrink(
+    f_count: int, f_width: int, f_height: int, min_y: int, *, ease: bool = False
+) -> list[float]:
+    frame_steps = list(
+        zip(
+            [f_width] * f_count,
+            list(map(lambda x: int(x * f_height), get_height_steps(f_count, min_y))),
         )
-        frame_modifiers.extend(zip([1] * len(range_modifiers), range_modifiers))
+    )
 
-    return frame_modifiers
+    if not ease:
+        return frame_steps
+    else:
+        return [
+            (
+                f_width,
+                int(
+                    f_height
+                    + ((f_height * min_y) - f_height) * ease_step((i + 1) / f_count)
+                ),
+            )
+            for i in range(f_count)
+        ]
 
 
-def shrink(frame_count: int, minimum_y_divisor: int) -> list[float]:
+def modifier_vanish(f_count: int, f_width: int, f_height: int) -> list[float]:
+    return [[f_width, f_height], *[[1, 1]] * (f_count - 1)]
+
+
+def modifier_random(
+    f_count: int, f_width: int, f_height: int, min_x: float, min_y: float
+) -> list[float]:
     return [
-        [1, i]
-        for i in np.arange(
-            1.0,
-            1.0 / minimum_y_divisor,
-            -((1.0 - (1.0 / minimum_y_divisor)) / frame_count),
-        )
-    ]
-
-
-def disappear(frame_count: int) -> list[float]:
-    return [[1, 1], *[[0, 0]] * (frame_count - 1)]
-
-
-def random_resize(frame_count: int, minimum_divisors: tuple[int]) -> list[float]:
-    return [
-        [1, 1],
+        [f_width, f_height],
         *[
             [
-                random.uniform(1.0 / minimum_divisors[0], 1.0),
-                random.uniform(1.0 / minimum_divisors[1], 1.0),
+                int(np.random.uniform(1.0 * min_x, 1.0) * f_width),
+                int(np.random.uniform(1.0 * min_y, 1.0) * f_height),
             ]
-            for _ in range(frame_count - 1)
+            for _ in range(f_count - 1)
         ],
     ]
 
 
-# helpers --------------------------------------------------------------
+# Helpers --------------------------------------------------------------------
 
 
-def create_frames(input_path: str, frame_path: str) -> str:
-    output_path = os.path.join(frame_path, "frame_%04d.jpg")
-    proc = subprocess.run(
-        ["ffmpeg", "-hide_banner", "-i", input_path, output_path], capture_output=True
+def get_height_steps(f_count: int, min_y: float) -> list[float]:
+    return np.arange(1.0, min_y, -((1.0 - (min_y)) / f_count))
+
+
+def get_width_steps(f_count: int, min_x: float) -> list[float]:
+    return np.arange(1.0, min_x, -((1.0 - (min_x)) / f_count))
+
+
+def ease_step(t: float) -> float:
+    if t < 0.5:
+        return 2 * t * t
+    return (-2 * t * t) + (4 * t) - 1
+
+
+def log(message: str) -> None:
+    print(f"[+] {message}")
+
+
+def deconstruct_video(input_path: str, output_path: str) -> str:
+    process = subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-i",
+            input_path,
+            os.path.join(output_path, "frame_%05d.png"),
+        ],
+        capture_output=True,
     )
+    return re.findall(r"(\d+\.\d+|\d+) fps", process.stderr.decode("utf-8"))[0]
 
-    return re.findall(r"(\d+\.\d+|\d+) fps", proc.stderr.decode("utf-8"))[0]
 
+def resize_frame(details: tuple) -> None:
+    f_path, dimensions = details
 
-def ease_modifier(value: int, modifier: float, t_progress: float) -> float:
-    # TODO: ease per section for bounce, accounting for min height value
-    return max(
-        round(value * (modifier ** 2 / (2.0 * (modifier ** 2 - modifier) + 1.0))), 1
+    img = (Image.open(f_path)).resize(
+        (max(dimensions[0], 1), max(dimensions[1], 1)), Image.LANCZOS
     )
-
-
-def resize_frame(frame_details: tuple) -> None:
-
-    frame_path, frame_modifier, t_progress = frame_details
-
-    image = Image.open(frame_path)
-    image = image.resize(
-        (
-            ease_modifier(image.width, frame_modifier[0], t_progress),
-            ease_modifier(image.height, frame_modifier[1], t_progress),
-        ),
-        Image.LANCZOS,
-    )
-
-    image.save(frame_path)
+    img.save(f_path)
 
 
 def resize_frames(
-    frame_dir: str,
-    frame_rate: str,
-    modifier: int,
-    input_file: str,
-    workers: int,
-    minimums: tuple[int],
+    f_dir: str,
+    f_rate: str,
+    modifier_option: int,
+    input_path: str,
+    threads: int,
+    min_width: int,
+    min_height: int,
+    ease: bool,
 ) -> None:
+    min_x = min_width / 100
+    min_y = min_height / 100
 
-    minimum_divisors = (100 // minimums[0], 100 // minimums[1])
-
-    proc = subprocess.run(
+    process = subprocess.run(
         [
             "ffprobe",
             "-v",
@@ -119,39 +168,33 @@ def resize_frames(
             "stream=width,height,nb_read_packets",
             "-of",
             "csv=p=0",
-            input_file,
+            input_path,
         ],
         capture_output=True,
     )
 
-    details = list(map(int, proc.stdout.decode("utf-8").split("\n")[0].split(",")))
+    width, height, frame_count = list(
+        map(int, process.stdout.decode("utf-8").split("\n")[0].split(","))
+    )
 
-    width, height, frame_count = details[0], details[1], details[2]
+    if modifier_option == 1:
+        modified_sizes = modifier_bounce(frame_count, width, height, min_y, ease=ease)
+    elif modifier_option == 2:
+        modified_sizes = modifier_shrink(frame_count, width, height, min_y, ease=ease)
+    elif modifier_option == 3:
+        modified_sizes = modifier_vanish(frame_count, width, height)
+    elif modifier_option == 4:
+        modified_sizes = modifier_random(frame_count, width, height, min_x, min_y)
 
-    if modifier == 1:
-        frame_modifiers = bounce(frame_count, minimum_divisors[1])
-    elif modifier == 2:
-        frame_modifiers = shrink(frame_count, minimum_divisors[1])
-    elif modifier == 3:
-        frame_modifiers = disappear(frame_count)
-    elif modifier == 4:
-        frame_modifiers = random_resize(frame_count, minimum_divisors)
-
-    t_progresses = np.linspace(0, 1, len(frame_modifiers))
-
-    execution_pool = Pool(processes=workers)
-    execution_pool.map(
+    pool = multiprocessing.Pool(processes=threads)
+    pool.map(
         resize_frame,
-        zip(
-            [os.path.join(frame_dir, f) for f in os.listdir(frame_dir)],
-            frame_modifiers,
-            t_progresses,
-        ),
+        zip([os.path.join(f_dir, f) for f in os.listdir(f_dir)], modified_sizes),
     )
 
 
-def convert_frame(frame_details: tuple) -> None:
-    frame_path, frame_rate = frame_details
+def convert_frame(details: tuple) -> None:
+    f_path, f_rate = details
 
     subprocess.run(
         [
@@ -160,31 +203,31 @@ def convert_frame(frame_details: tuple) -> None:
             "-loglevel",
             "error",
             "-framerate",
-            frame_rate,
+            f_rate,
             "-f",
             "image2",
             "-i",
-            frame_path,
+            f_path,
             "-c:v",
             "libvpx-vp9",
             "-pix_fmt",
             "yuva420p",
-            frame_path[:-4] + ".webm",
+            f_path[:-4] + ".webm",
         ]
     )
 
-    os.remove(frame_path)
+    os.remove(f_path)
 
 
-def convert_frames(frame_dir: str, frame_rate: str, workers: int) -> None:
-    execution_pool = Pool(processes=workers)
-    execution_pool.map(
+def convert_frames(f_dir: str, f_rate: str, workers: int) -> None:
+    pool = multiprocessing.Pool(processes=workers)
+    pool.map(
         convert_frame,
-        [(os.path.join(frame_dir, f), frame_rate) for f in os.listdir(frame_dir)],
+        [(os.path.join(f_dir, f), f_rate) for f in os.listdir(f_dir)],
     )
 
 
-def combine_frames(input_files: str) -> None:
+def combine_frames(input_list: str) -> None:
     subprocess.run(
         [
             "ffmpeg",
@@ -196,7 +239,7 @@ def combine_frames(input_files: str) -> None:
             "-safe",
             "0",
             "-i",
-            input_files,
+            input_list,
             "-c",
             "copy",
             "-y",
@@ -205,8 +248,8 @@ def combine_frames(input_files: str) -> None:
     )
 
 
-def add_audio(input_video: str, output_video: str) -> str:
-    output_file_name = f"output_{''.join([random.choice(string.ascii_letters) for _ in range(5)])}.webm"
+def add_audio(input_path: str, modified_path: str) -> str:
+    output_name = f"output_{''.join([random.choice(string.ascii_letters) for _ in range(5)])}.webm"
 
     subprocess.run(
         [
@@ -215,9 +258,9 @@ def add_audio(input_video: str, output_video: str) -> str:
             "-loglevel",
             "error",
             "-i",
-            input_video,
+            input_path,
             "-i",
-            output_video,
+            modified_path,
             "-map",
             "1:v",
             "-map",
@@ -225,100 +268,114 @@ def add_audio(input_video: str, output_video: str) -> str:
             "-c:v",
             "copy",
             "-y",
-            output_file_name,
+            output_name,
         ]
     )
 
-    return output_file_name
+    return output_name
 
 
-# main -----------------------------------------------------------------
+# Main -----------------------------------------------------------------------
 
 
-def main(input_file: str, modifier: int, workers: int, minimums: tuple[int]) -> None:
+def main(args: argparse.Namespace) -> None:
     if os.path.exists("./temp"):
         shutil.rmtree(path="temp")
 
     os.makedirs("./temp/frames")
 
-    # create image for every frame in video
+    log("Creating Frames...")
+    f_rate = deconstruct_video(args.input, "./temp/frames")
 
-    print("[+] Creating Frames...")
-    frame_rate = create_frames(input_file, "./temp/frames")
+    log("Resizing Frames...")
+    resize_frames(
+        "./temp/frames",
+        f_rate,
+        args.modifier,
+        args.input,
+        args.threads,
+        args.minwidth,
+        args.minheight,
+        args.ease,
+    )
 
-    # resize frames based on chosen modifier
+    log("Converting Frames...")
+    convert_frames("./temp/frames", f_rate, args.threads)
 
-    print("[+] Resizing Frames...")
-    resize_frames("./temp/frames", frame_rate, modifier, input_file, workers, minimums)
-
-    # convert each frame to webm format
-
-    print("[+] Converting Frames...")
-    convert_frames("./temp/frames", frame_rate, workers)
-
-    # combine all webm frames into one video
-
-    with open("input.txt", "w+") as f:
-        f.write(
+    with open("./temp/input.txt", "w+") as file:
+        file.write(
             "\n".join(
                 [
-                    f"file '{os.path.join('./temp/frames', path)}'"
-                    for path in os.listdir("./temp/frames")
+                    f"file '{os.path.join('frames', p)}'"
+                    for p in os.listdir("./temp/frames")
                 ]
             )
         )
 
-    print("[+] Combining Frames...")
-    combine_frames("input.txt")
+    log("Combining Frames...")
+    combine_frames("./temp/input.txt")
 
-    # add the audio from the original input to the output video
+    log("Adding Audio...")
+    output_name = add_audio(
+        args.input, os.path.join("./temp", "first_pass_output.webm")
+    )
 
-    print("[+] Adding Audio...")
-    output_file_name = add_audio(input_file, "./temp/first_pass_output.webm")
+    log("Cleaning Up...")
+    shutil.rmtree(path="temp")
 
-    # delete temp files and concatenation input file
-
-    print("[+] Perfoming Clean-Up...")
-    os.remove("input.txt")
-    shutil.rmtree("./temp")
-
-    # video is complete and has been output as `output_file_name`
-
-    print(f"[+] Video saved as {output_file_name}")
+    log("Video Saved -> {}".format(output_name))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Create a webm video with a dynamic resolution."
+        description="Create a WEBM video that changes resolution when played."
     )
     parser.add_argument(
-        "-i", "--input", type=str, help="Input video file", required=True
+        "-i",
+        "--input",
+        type=str,
+        help="Path of video file that will be modified.",
+        required=True,
     )
     parser.add_argument(
-        "-m", "--modifier", type=int, help="Video modifier option", required=True
-    )
-    parser.add_argument(
-        "-w",
-        "--workers",
+        "-m",
+        "--modifier",
         type=int,
-        help="Number of workers/threads to run (defaults to CPU thread count)",
+        help="Choice of video modifier option.",
+        choices=range(1, 5),
+        required=True,
+    )
+    parser.add_argument(
+        "-t",
+        "--threads",
+        type=int,
+        help="Number of workers to use (defaults to CPU thread count).",
     )
     parser.add_argument(
         "--minwidth",
         type=int,
-        default=1,
-        help="Use a percentage to specify the minimum width a frame can be modified to (defaults to 1%)",
+        default=0,
+        help="Use a percentage to specify the minimum width a frame can be modified to (defaults to 0%).",
     )
     parser.add_argument(
         "--minheight",
         type=int,
-        default=1,
-        help="Use a percentage to specify the minimum height a frame can be modified to (defaults to 1%)",
+        default=0,
+        help="Use a percentage to specify the minimum width a frame can be modified to (defaults to 0%).",
+    )
+    parser.add_argument(
+        "--ease",
+        action="store_true",
+        help="Enable smooth transitions for the bounce and shrink modifiers.",
     )
 
     args = parser.parse_args()
 
-    if args.workers is None:
-        args.workers = os.cpu_count() or 1
+    if not (0 <= args.minwidth <= 100) or not (0 <= args.minheight <= 100):
+        print("Minimum width and height percentages must be between 0 and 100.")
+        exit(1)
 
-    main(args.input, args.modifier, args.workers, (args.minwidth, args.minheight))
+    if args.threads is None:
+        args.threads = os.cpu_count() or 1
+
+    main(args)
