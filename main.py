@@ -14,37 +14,25 @@ from PIL import Image
 # Modifiers ------------------------------------------------------------------
 
 
-def modifier_bounce(
-    f_count: int, f_width: int, f_height: int, min_y: float, *, ease: bool = False
-) -> list[float]:
-    loop_num = f_count // 30
+def modifier_bounce(frames, width, height, min_y, *, ease=False) -> list[float]:
+    range_size = frames // (frames // 30 * 2)
 
-    f_ranges = [
-        (i, i + f_count // (loop_num * 2))
-        for i in range(0, f_count, f_count // (loop_num * 2))
-    ]
+    modified = []
+    base = 0
+    for i in range(frames):
+        progress = (i - base) / range_size
 
-    f_sizes = []
-    for i, r in enumerate(f_ranges):
-        r_size = r[1] - r[0]
-        for j in range(r_size):
-            progress = (j + 1) / r_size
-            f_sizes.append(
-                (
-                    f_width,
-                    int(
-                        f_height
-                        + (f_height * min_y - f_height)
-                        * (ease_step(progress) if ease else progress)
-                        if i % 2 == 0
-                        else f_height
-                        + (f_height * min_y - f_height)
-                        * (ease_step(1.0 - progress) if ease else 1.0 - progress)
-                    ),
-                )
-            )
+        if (i - range_size - (1 if not 0 <= i < range_size else 0)) // range_size % 2:
+            modifier = ease_step(progress) if ease else progress
+        else:
+            modifier = ease_step(1 - progress) if ease else 1 - progress
 
-    return f_sizes
+        modified.append((width, int(height + (height * min_y - height) * modifier)))
+
+        if i - base == range_size:
+            base += range_size
+
+    return modified
 
 
 def modifier_shrink(
