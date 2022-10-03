@@ -16,21 +16,23 @@ from PIL import Image
 
 def modifier_bounce(frames, width, height, min_y, *, ease=False) -> list[float]:
     range_size = frames // (frames // 30 * 2)
-
     modified = []
-    base = 0
+    range_start = 0
+    transition_switch = True
+    
     for i in range(frames):
-        progress = (i - base) / range_size
+        progress = (i - range_start) / range_size
 
-        if (i - range_size - (1 if not 0 <= i < range_size else 0)) // range_size % 2:
+        if transition_switch:
             modifier = ease_step(progress) if ease else progress
         else:
             modifier = ease_step(1 - progress) if ease else 1 - progress
 
         modified.append((width, int(height + (height * min_y - height) * modifier)))
 
-        if i - base == range_size:
-            base += range_size
+        if i - range_start == range_size - 1:
+            range_start += range_size
+            transition_switch = not transition_switch
 
     return modified
 
