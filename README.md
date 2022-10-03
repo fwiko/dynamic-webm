@@ -20,6 +20,9 @@ python main.py -i/--input <input_path> -m/--modifier <modification_option> --eas
 - `3` Create a "disappearing" video. The video will shrink to a resolution of 1x1.
 - `4` Create a "random" video. Video frames will change to random resolutions.
 
+### Pre-requisites
+- FFmpeg (https://ffmpeg.org/)
+
 ### Example Result
 Command used: `python main.py -i <input_path> -m 1 --minheight 0 --ease`
 
