@@ -19,7 +19,7 @@ def modifier_bounce(frames, width, height, min_y, *, ease=False) -> list[float]:
     modified = []
     range_start = 0
     transition_switch = True
-    
+
     for i in range(frames):
         progress = (i - range_start) / range_size
 
@@ -37,27 +37,19 @@ def modifier_bounce(frames, width, height, min_y, *, ease=False) -> list[float]:
     return modified
 
 
-def modifier_shrink(
-    f_count: int, f_width: int, f_height: int, min_y: int, *, ease: bool = False
-) -> list[float]:
-    frame_steps = zip(
-        [f_width] * f_count,
-        map(lambda x: int(x * f_height), get_height_steps(f_count, min_y)),
-    )
+def modifier_shrink(frames, width, height, min_y, *, ease: bool = False) -> list[float]:
+    modified = []
 
     if not ease:
-        return frame_steps
+        modified = map(
+            lambda x: (width, int(height * x)), get_height_steps(frames, min_y)
+        )
     else:
-        return [
-            (
-                f_width,
-                int(
-                    f_height
-                    + (f_height * min_y - f_height) * ease_step((i + 1) / f_count)
-                ),
-            )
-            for i in range(f_count)
-        ]
+        for i in range(frames):
+            height_modifier = (height * min_y - height) * ease_step((i + 1) / frames)
+            modified.append((width, int(height + height_modifier)))
+
+    return modified
 
 
 def modifier_vanish(f_count: int, f_width: int, f_height: int) -> list[float]:
