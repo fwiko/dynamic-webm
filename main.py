@@ -11,10 +11,21 @@ import numpy as np
 from PIL import Image
 
 
-# Modifiers ------------------------------------------------------------------
+def modifier_bounce(
+    frames: int, width: int, height: int, min_y: float, *, ease: bool = False
+) -> list[float]:
+    """Designed to simulate a bouncing effect on the y axis.
 
+    Args:
+        frames (int): Total number of frames in the video.
+        width (int): Original width of the video.
+        height (int): Original height of the video.
+        min_y (float): Minimum height of the video represented as a decimal fraction between 0 and 1.
+        ease (bool, optional): Speficy whether an easing effect should be applied to the transition. Defaults to False.
 
-def modifier_bounce(frames, width, height, min_y, *, ease=False) -> list[float]:
+    Returns:
+        list[float]: A list of tuples containing the modified width and height of each frame.
+    """
     range_size = frames // (frames // 30 * 2)
     modified = []
     range_start = 0
@@ -24,9 +35,9 @@ def modifier_bounce(frames, width, height, min_y, *, ease=False) -> list[float]:
         progress = (i - range_start) / range_size
 
         if transition_switch:
-            modifier = ease_step(progress) if ease else progress
+            modifier = apply_easing(progress) if ease else progress
         else:
-            modifier = ease_step(1 - progress) if ease else 1 - progress
+            modifier = apply_easing(1 - progress) if ease else 1 - progress
 
         modified.append((width, int(height + (height * min_y - height) * modifier)))
 
@@ -37,62 +48,103 @@ def modifier_bounce(frames, width, height, min_y, *, ease=False) -> list[float]:
     return modified
 
 
-def modifier_shrink(frames, width, height, min_y, *, ease: bool = False) -> list[float]:
+def modifier_shrink(
+    frames: int, width: int, height: int, min_y: float, *, ease: bool = False
+) -> list[float]:
+    """Designed to simulate a shrinking effect on the y axis.
+
+    Args:
+        frames (int): Total number of frames in the video.
+        width (int): Original width of the video.
+        height (int): Original height of the video.
+        min_y (float): Minimum height of the video represented as a decimal fraction between 0 and 1.
+        ease (bool, optional): Speficy whether an easing effect should be applied to the transition. Defaults to False.
+
+    Returns:
+        list[float]: A list of tuples containing the modified width and height of each frame.
+    """
     modified = []
 
     if not ease:
-        modified = map(
-            lambda x: (width, int(height * x)), get_height_steps(frames, min_y)
-        )
+        height_steps = np.arange(1.0, min_y, -((1.0 - (min_y)) / f_count))
+        modified = map(lambda x: (width, int(height * x)), height_steps)
     else:
         for i in range(frames):
-            height_modifier = (height * min_y - height) * ease_step((i + 1) / frames)
+            height_modifier = (height * min_y - height) * apply_easing((i + 1) / frames)
             modified.append((width, int(height + height_modifier)))
 
     return modified
 
 
-def modifier_vanish(f_count: int, f_width: int, f_height: int) -> list[float]:
-    return [[f_width, f_height], *[[1, 1]] * (f_count - 1)]
+def modifier_vanish(frames: int, width: int, height: int) -> list[float]:
+    """Designed to a make the video "disappear" as soon as it starts.
+
+
+    Args:
+        frames (int): Total number of frames in the video.
+        width (int): Original width of the video.
+        height (int): Original height of the video.
+
+    Returns:
+        list[float]: A list of tuples containing the modified width and height of each frame.
+    """
+    modified = [(width, height)] + [[1, 1]] * (frames - 1)
+
+    return modified
 
 
 def modifier_random(
-    f_count: int, f_width: int, f_height: int, min_x: float, min_y: float
+    frames: int, width: int, height: int, min_x: float, min_y: float
 ) -> list[float]:
-    return [
-        [f_width, f_height],
-        *[
-            [
-                int(np.random.uniform(1.0 * min_x, 1.0) * f_width),
-                int(np.random.uniform(1.0 * min_y, 1.0) * f_height),
-            ]
-            for _ in range(f_count - 1)
-        ],
-    ]
+    """Designed to rapidly change the dimensions of the video.
+
+    Args:
+        frames (int): Total number of frames in the video.
+        width (int): Original width of the video.
+        height (int): Original height of the video.
+        min_x (float): Minimum width of the video represented as a decimal fraction between 0 and 1.
+        min_y (float): Minimum height of the video represented as a decimal fraction between 0 and 1.
+
+    Returns:
+        list[float]: A list of tuples containing the modified width and height of each frame.
+    """
+    modified = [(width, height)]
+
+    for _ in range(frames - 1):
+        modified_width = int(width * random.uniform(min_x, 1))
+        modified_height = int(height * random.uniform(min_y, 1))
+        modified.append((modified_width, modified_height))
+
+    return modified
 
 
 # Helpers --------------------------------------------------------------------
 
 
-def get_height_steps(f_count: int, min_y: float) -> list[float]:
-    return np.arange(1.0, min_y, -((1.0 - (min_y)) / f_count))
+def apply_easing(t: float) -> float:
+    """Apply quadratic easing to a value.
 
+    Args:
+        t (float): Progress represented as a decimal fraction between 0 and 1.
 
-def get_width_steps(f_count: int, min_x: float) -> list[float]:
-    return np.arange(1.0, min_x, -((1.0 - (min_x)) / f_count))
-
-
-def ease_step(t: float) -> float:
+    Returns:
+        float: Modified (eased) progress represented as a decimal fraction between 0 and 1.
+    """
     if t < 0.5:
         return 2 * t * t
     return (-2 * t * t) + (4 * t) - 1
 
 
-def log(message: str) -> None:
-    print(f"[+] {message}")
-
-
 def deconstruct_video(input_path: str, output_path: str) -> str:
+    """Deconstruct a video into a series of frames.
+
+    Args:
+        input_path (str): Complete path to the input video.
+        output_path (str): Complete path to the output directory (where frames will be stored).
+
+    Returns:
+        str: Returns the framerate of the input video.
+    """
     process = subprocess.run(
         [
             "ffmpeg",
@@ -107,24 +159,41 @@ def deconstruct_video(input_path: str, output_path: str) -> str:
 
 
 def resize_frame(details: tuple) -> None:
-    f_path, dimensions = details
+    """Resize an individual frame/image based on speficied details.
 
-    img = (Image.open(f_path)).resize(
+    Args:
+        details (tuple): A tuple containing the path to the frame and the modified width and height of the frame.
+    """
+    frame_path, dimensions = details
+
+    img = (Image.open(frame_path)).resize(
         (max(dimensions[0], 1), max(dimensions[1], 1)), Image.LANCZOS
     )
-    img.save(f_path)
+    img.save(frame_path)
 
 
 def resize_frames(
-    f_dir: str,
-    f_rate: str,
+    frame_dir: str,
+    frame_rate: str,
     modifier_option: int,
     input_path: str,
     threads: int,
     min_width: int,
     min_height: int,
-    ease: bool,
+    ease: bool = False,
 ) -> None:
+    """Resize all video frames based on the specified options. Uses multiprocessing with the resize_frame function.
+
+    Args:
+        frame_dir (str): Directory of the deconstructed video frames.
+        frame_rate (str): Frame rate of the input video.
+        modifier_option (int): Choice of modifier function to use.
+        input_path (str): Path of the input video.
+        threads (int): Number of Threads/Workers to use when resizing frames concurrently.
+        min_width (int): Minimum width of the video represented as a percentage.
+        min_height (int): Minimum height of the video represented as a percentage.
+        ease (bool): Speficy whether an easing effect should be applied to the transition. Defaults to False.
+    """
     min_x = min_width / 100
     min_y = min_height / 100
 
@@ -161,12 +230,19 @@ def resize_frames(
     pool = multiprocessing.Pool(processes=threads)
     pool.map(
         resize_frame,
-        zip([os.path.join(f_dir, f) for f in os.listdir(f_dir)], modified_sizes),
+        zip(
+            [os.path.join(frame_dir, f) for f in os.listdir(frame_dir)], modified_sizes
+        ),
     )
 
 
 def convert_frame(details: tuple) -> None:
-    f_path, f_rate = details
+    """Convert a single image frame to WEBM format.
+
+    Args:
+        details (tuple): A tuple containing the path to the frame and the frame rate of the video.
+    """
+    frame_path, frame_rate = details
 
     subprocess.run(
         [
@@ -175,31 +251,43 @@ def convert_frame(details: tuple) -> None:
             "-loglevel",
             "error",
             "-framerate",
-            f_rate,
+            frame_rate,
             "-f",
             "image2",
             "-i",
-            f_path,
+            frame_path,
             "-c:v",
             "libvpx-vp9",
             "-pix_fmt",
             "yuva420p",
-            f_path[:-4] + ".webm",
+            frame_path[:-4] + ".webm",
         ]
     )
 
-    os.remove(f_path)
+    os.remove(frame_path)
 
 
-def convert_frames(f_dir: str, f_rate: str, workers: int) -> None:
-    pool = multiprocessing.Pool(processes=workers)
+def convert_frames(frame_dir: str, frame_rate: str, threads: int) -> None:
+    """Convert all frames to WEBM format. Uses multiprocessing with the convert_frame function.
+
+    Args:
+        frame_dir (str): Directory of the deconstructed video frames.
+        frame_rate (str): Frame rate of the input video.
+        threads (int): Number of Threads/Workers to use when converting frames.
+    """
+    pool = multiprocessing.Pool(processes=threads)
     pool.map(
         convert_frame,
-        [(os.path.join(f_dir, f), f_rate) for f in os.listdir(f_dir)],
+        [(os.path.join(frame_dir, f), frame_rate) for f in os.listdir(frame_dir)],
     )
 
 
 def combine_frames(input_list: str) -> None:
+    """Combine all processed frames (WEBM format) into a single video.
+
+    Args:
+        input_list (str): String containing a list of paths of all WEBM formatted frames.
+    """
     subprocess.run(
         [
             "ffmpeg",
@@ -221,6 +309,15 @@ def combine_frames(input_list: str) -> None:
 
 
 def add_audio(input_path: str, modified_path: str) -> str:
+    """Add the original audio track to the modified video.
+
+    Args:
+        input_path (str): Path of the original video.
+        modified_path (str): Path of the modified video.
+
+    Returns:
+        str: Name of the final output file.
+    """
     output_name = f"output_{''.join([random.choice(string.ascii_letters) for _ in range(5)])}.webm"
 
     subprocess.run(
@@ -247,22 +344,24 @@ def add_audio(input_path: str, modified_path: str) -> str:
     return output_name
 
 
-# Main -----------------------------------------------------------------------
-
-
 def main(args: argparse.Namespace) -> None:
+    """Main function of the program. Illustrates the process from start to finish.
+
+    Args:
+        args (argparse.Namespace): Arguments passed in from the command line.
+    """
     if os.path.exists("./temp"):
         shutil.rmtree(path="temp")
 
     os.makedirs("./temp/frames")
 
-    log("Creating Frames...")
-    f_rate = deconstruct_video(args.input, "./temp/frames")
+    print("[+] Creating Frames...")
+    frame_rate = deconstruct_video(args.input, "./temp/frames")
 
-    log("Resizing Frames...")
+    print("[+] Resizing Frames...")
     resize_frames(
         "./temp/frames",
-        f_rate,
+        frame_rate,
         args.modifier,
         args.input,
         args.threads,
@@ -271,8 +370,8 @@ def main(args: argparse.Namespace) -> None:
         args.ease,
     )
 
-    log("Converting Frames...")
-    convert_frames("./temp/frames", f_rate, args.threads)
+    print("[+] Converting Frames...")
+    convert_frames("./temp/frames", frame_rate, args.threads)
 
     with open("./temp/input.txt", "w+") as file:
         file.write(
@@ -284,18 +383,18 @@ def main(args: argparse.Namespace) -> None:
             )
         )
 
-    log("Combining Frames...")
+    print("[+] Combining Frames...")
     combine_frames("./temp/input.txt")
 
-    log("Adding Audio...")
+    print("[+] Adding Audio...")
     output_name = add_audio(
         args.input, os.path.join("./temp", "first_pass_output.webm")
     )
 
-    log("Cleaning Up...")
+    print("[+] Cleaning Up...")
     shutil.rmtree(path="temp")
 
-    log("Video Saved -> {}".format(output_name))
+    print("[+] Output Saved -> {}".format(output_name))
 
 
 if __name__ == "__main__":

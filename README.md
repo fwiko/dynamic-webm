@@ -21,9 +21,11 @@ python main.py -i/--input <input_path> -m/--modifier <modification_option> --eas
 - `4` Create a "random" video. Video frames will change to random resolutions.
 
 ### Pre-requisites
+
 - FFmpeg (https://ffmpeg.org/)
 
 ### Example Result
+
 Command used: `python main.py -i <input_path> -m 1 --minheight 0 --ease`
 
 [example.webm](https://user-images.githubusercontent.com/45544056/182500464-c14adb3d-9396-4821-b89a-558e1dbdeca7.webm)
