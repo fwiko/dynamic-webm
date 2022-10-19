@@ -118,9 +118,6 @@ def modifier_random(
     return modified
 
 
-# Helpers --------------------------------------------------------------------
-
-
 def apply_easing(t: float) -> float:
     """Apply quadratic easing to a value.
 
