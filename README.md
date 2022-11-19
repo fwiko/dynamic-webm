@@ -1,8 +1,8 @@
 # Dynamic WEBM
 
-Create a webm video that changes size when played in a web application.
+Create a WEBM video that changes resolution when played. With options to set the minimum height/width and to enable easing transitions. 
 
-## Options
+### Options
 
 | Flag           | Description                                                                                             |
 | :--------------: | :-------------------------------------------------------------------------------------------------------: |
@@ -14,7 +14,7 @@ Create a webm video that changes size when played in a web application.
 | --ease         | Enable bidirectional cubic easing transitions with the bouncing, shrinking, and disappearing modifiers. |
 
 
-## Modifiers
+### Modifiers
 
 | Modifier  | Value | Description                                                                                                                                                      |
 | :---------: | :-----: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
@@ -27,10 +27,11 @@ Create a webm video that changes size when played in a web application.
 
 - FFmpeg (https://ffmpeg.org/)
 
-## Example
+### Example
 
 ```bash
 python main.py -i <input_path> -m 1 --minheight 0 --ease
 ```
 
 [example.webm](https://user-images.githubusercontent.com/45544056/182500464-c14adb3d-9396-4821-b89a-558e1dbdeca7.webm)
+
