@@ -5,7 +5,7 @@ Create a webm video that changes size when played in a web application.
 ## Options
 
 | Flag           | Description                                                                                             |
-| -------------- | ------------------------------------------------------------------------------------------------------- |
+| :--------------: | :-------------------------------------------------------------------------------------------------------: |
 | -i, --input    | The path of the video you wish to modify.                                                               |
 | -m, --modifier | An option from the available Modifiers.                                                               |
 | -w, --workers  | Number of workers to use for processing (default: CPU Thread Count).                                    |
@@ -17,7 +17,7 @@ Create a webm video that changes size when played in a web application.
 ## Modifiers
 
 | Modifier  | Value | Description                                                                                                                                                      |
-| --------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| :---------: | :-----: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | Bounce    | 1     | Create a "bouncing" video; The video will shrink and grow multiple times along the Y axis.                                                                       |
 | Shrink    | 2     | Create a "shrinking" video; The video will shrink along the Y axis to a final height of 1 pixel, or the height specified using the `--minheight` flag.           |
 | Disappear | 3     | Create a "vanishing" video; The video will instantly change to a resolution of 1x1 upon being played.                                                            |
