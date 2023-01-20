@@ -11,9 +11,7 @@ import numpy as np
 from PIL import Image
 
 
-def modifier_bounce(
-    frames: int, width: int, height: int, min_y: float, *, ease: bool = False
-) -> list[float]:
+def modifier_bounce(frames: int, width: int, height: int, min_y: float, *, ease: bool = False) -> list[float]:
     """Designed to simulate a bouncing effect on the y axis.
 
     Args:
@@ -48,9 +46,7 @@ def modifier_bounce(
     return modified
 
 
-def modifier_shrink(
-    frames: int, width: int, height: int, min_y: float, *, ease: bool = False
-) -> list[float]:
+def modifier_shrink(frames: int, width: int, height: int, min_y: float, *, ease: bool = False) -> list[float]:
     """Designed to simulate a shrinking effect on the y axis.
 
     Args:
@@ -93,9 +89,7 @@ def modifier_vanish(frames: int, width: int, height: int) -> list[float]:
     return modified
 
 
-def modifier_random(
-    frames: int, width: int, height: int, min_x: float, min_y: float
-) -> list[float]:
+def modifier_random(frames: int, width: int, height: int, min_x: float, min_y: float) -> list[float]:
     """Designed to rapidly change the dimensions of the video.
 
     Args:
@@ -163,9 +157,7 @@ def resize_frame(details: tuple) -> None:
     """
     frame_path, dimensions = details
 
-    img = (Image.open(frame_path)).resize(
-        (max(dimensions[0], 1), max(dimensions[1], 1)), Image.LANCZOS
-    )
+    img = (Image.open(frame_path)).resize((max(dimensions[0], 1), max(dimensions[1], 1)), Image.LANCZOS)
     img.save(frame_path)
 
 
@@ -211,9 +203,7 @@ def resize_frames(
         capture_output=True,
     )
 
-    width, height, frame_count = list(
-        map(int, process.stdout.decode("utf-8").split("\n")[0].split(","))
-    )
+    width, height, frame_count = list(map(int, process.stdout.decode("utf-8").split("\n")[0].split(",")))
 
     if modifier_option == 1:
         modified_sizes = modifier_bounce(frame_count, width, height, min_y, ease=ease)
@@ -227,9 +217,7 @@ def resize_frames(
     pool = multiprocessing.Pool(processes=threads)
     pool.map(
         resize_frame,
-        zip(
-            [os.path.join(frame_dir, f) for f in os.listdir(frame_dir)], modified_sizes
-        ),
+        zip([os.path.join(frame_dir, f) for f in os.listdir(frame_dir)], modified_sizes),
     )
 
 
@@ -371,22 +359,13 @@ def main(args: argparse.Namespace) -> None:
     convert_frames("./temp/frames", frame_rate, args.threads)
 
     with open("./temp/input.txt", "w+") as file:
-        file.write(
-            "\n".join(
-                [
-                    f"file '{os.path.join('frames', p)}'"
-                    for p in os.listdir("./temp/frames")
-                ]
-            )
-        )
+        file.write("\n".join([f"file '{os.path.join('frames', p)}'" for p in os.listdir("./temp/frames")]))
 
     print("[+] Combining Frames...")
     combine_frames("./temp/input.txt")
 
     print("[+] Adding Audio...")
-    output_name = add_audio(
-        args.input, os.path.join("./temp", "first_pass_output.webm")
-    )
+    output_name = add_audio(args.input, os.path.join("./temp", "first_pass_output.webm"))
 
     print("[+] Cleaning Up...")
     shutil.rmtree(path="temp")
@@ -395,9 +374,7 @@ def main(args: argparse.Namespace) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Create a WEBM video that changes resolution when played."
-    )
+    parser = argparse.ArgumentParser(description="Create a WEBM video that changes resolution when played.")
     parser.add_argument(
         "-i",
         "--input",
