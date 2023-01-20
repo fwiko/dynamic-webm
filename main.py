@@ -62,7 +62,7 @@ def modifier_shrink(frames: int, width: int, height: int, min_y: float, *, ease:
     modified = []
 
     if not ease:
-        height_steps = np.arange(1.0, min_y, -((1.0 - (min_y)) / f_count))
+        height_steps = np.arange(1.0, min_y, -((1.0 - (min_y)) / frames))
         modified = map(lambda x: (width, int(height * x)), height_steps)
     else:
         for i in range(frames):
@@ -162,21 +162,13 @@ def resize_frame(details: tuple) -> None:
 
 
 def resize_frames(
-    frame_dir: str,
-    frame_rate: str,
-    modifier_option: int,
-    input_path: str,
-    threads: int,
-    min_width: int,
-    min_height: int,
-    ease: bool = False,
+    frame_dir: str, modifier: int, input_path: str, threads: int, min_width: int, min_height: int, ease: bool = False
 ) -> None:
     """Resize all video frames based on the specified options. Uses multiprocessing with the resize_frame function.
 
     Args:
         frame_dir (str): Directory of the deconstructed video frames.
-        frame_rate (str): Frame rate of the input video.
-        modifier_option (int): Choice of modifier function to use.
+        modifier (int): Choice of modifier function to use.
         input_path (str): Path of the input video.
         threads (int): Number of Threads/Workers to use when resizing frames concurrently.
         min_width (int): Minimum width of the video represented as a percentage.
@@ -205,13 +197,13 @@ def resize_frames(
 
     width, height, frame_count = list(map(int, process.stdout.decode("utf-8").split("\n")[0].split(",")))
 
-    if modifier_option == 1:
+    if modifier == 1:
         modified_sizes = modifier_bounce(frame_count, width, height, min_y, ease=ease)
-    elif modifier_option == 2:
+    elif modifier == 2:
         modified_sizes = modifier_shrink(frame_count, width, height, min_y, ease=ease)
-    elif modifier_option == 3:
+    elif modifier == 3:
         modified_sizes = modifier_vanish(frame_count, width, height)
-    elif modifier_option == 4:
+    elif modifier == 4:
         modified_sizes = modifier_random(frame_count, width, height, min_x, min_y)
 
     pool = multiprocessing.Pool(processes=threads)
@@ -344,16 +336,7 @@ def main(args: argparse.Namespace) -> None:
     frame_rate = deconstruct_video(args.input, "./temp/frames")
 
     print("[+] Resizing Frames...")
-    resize_frames(
-        "./temp/frames",
-        frame_rate,
-        args.modifier,
-        args.input,
-        args.threads,
-        args.minwidth,
-        args.minheight,
-        args.ease,
-    )
+    resize_frames("./temp/frames", args.modifier, args.input, args.threads, args.minwidth, args.minheight, args.ease)
 
     print("[+] Converting Frames...")
     convert_frames("./temp/frames", frame_rate, args.threads)
