@@ -253,7 +253,7 @@ def convert_frames(frame_dir: str, frame_rate: str, threads: int, quality: int) 
         frame_dir (str): Directory of the deconstructed video frames.
         frame_rate (str): Frame rate of the input video.
         threads (int): Number of Threads/Workers to use when converting frames.
-        quality (int): 
+        quality (int): Quality of the output video (0 = lossless, 51 = worst possible quality. defaults to 23)
     """
     pool = multiprocessing.Pool(processes=threads)
     pool.map(
