@@ -246,18 +246,19 @@ def convert_frame(details: tuple) -> None:
     os.remove(frame_path)
 
 
-def convert_frames(frame_dir: str, frame_rate: str, threads: int) -> None:
+def convert_frames(frame_dir: str, frame_rate: str, threads: int, quality: int) -> None:
     """Convert all frames to WEBM format. Uses multiprocessing with the convert_frame function.
 
     Args:
         frame_dir (str): Directory of the deconstructed video frames.
         frame_rate (str): Frame rate of the input video.
         threads (int): Number of Threads/Workers to use when converting frames.
+        quality (int): 
     """
     pool = multiprocessing.Pool(processes=threads)
     pool.map(
         convert_frame,
-        [(os.path.join(frame_dir, f), frame_rate) for f in os.listdir(frame_dir)],
+        [(os.path.join(frame_dir, f), frame_rate, str(quality)) for f in os.listdir(frame_dir)],
     )
 
 
