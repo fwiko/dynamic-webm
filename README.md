@@ -32,4 +32,4 @@ Create a WEBM video that changes resolution when played. With options to set the
 python main.py -i <input_path> -m 1 --minheight 0 --ease
 ```
 
-[example.webm](https://user-images.githubusercontent.com/45544056/182500464-c14adb3d-9396-4821-b89a-558e1dbdeca7.webm)
+[example.webm](https://github.com/fwiko/dynamic-webm/assets/45544056/c1a1672d-85eb-414e-9ca4-488fe31f695f)
