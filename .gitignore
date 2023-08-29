@@ -1,2 +1,3 @@
-*.webm
-temp
+!main.py
+!README.md
+!requirements.txt
