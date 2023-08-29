@@ -219,7 +219,7 @@ def convert_frame(details: tuple) -> None:
     Args:
         details (tuple): A tuple containing the path to the frame and the frame rate of the video.
     """
-    frame_path, frame_rate = details
+    frame_path, frame_rate, quality = details
 
     subprocess.run(
         [
@@ -237,6 +237,8 @@ def convert_frame(details: tuple) -> None:
             "libvpx-vp9",
             "-pix_fmt",
             "yuva420p",
+            "-crf",
+            quality,
             frame_path[:-4] + ".webm",
         ]
     )
@@ -339,7 +341,7 @@ def main(args: argparse.Namespace) -> None:
     resize_frames("./temp/frames", args.modifier, args.input, args.threads, args.minwidth, args.minheight, args.ease)
 
     print("[+] Converting Frames...")
-    convert_frames("./temp/frames", frame_rate, args.threads)
+    convert_frames("./temp/frames", frame_rate, args.threads, args.quality)
 
     with open("./temp/input.txt", "w+") as file:
         file.write("\n".join([f"file '{os.path.join('frames', p)}'" for p in os.listdir("./temp/frames")]))
@@ -395,6 +397,14 @@ if __name__ == "__main__":
         "--ease",
         action="store_true",
         help="Enable smooth transitions for the bounce and shrink modifiers.",
+    )
+    parser.add_argument(
+        "-q",
+        "--quality",
+        type=int,
+        default=23,
+        help="Set the quality of the output video (0 = lossless, 51 = worst possible quality. defaults to 23).",
+        choices=range(0, 52)    
     )
 
     args = parser.parse_args()
