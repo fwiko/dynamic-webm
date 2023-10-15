@@ -144,9 +144,7 @@ def resize_frame(details: tuple) -> None:
     img.save(frame_path)
 
 
-def resize_frames(
-    frame_dir: str, modifier: int, input_path: str, threads: int, min_width: int, min_height: int, ease: bool = False
-) -> None:
+def resize_frames(frame_dir: str, modifier: str, input_path: str, threads: int, min_width: int, min_height: int, ease: bool = False) -> None:
     """Resize all video frames based on the specified options. Uses multiprocessing with the resize_frame function.
 
     Args:
@@ -180,11 +178,11 @@ def resize_frames(
 
     width, height, frame_count = list(map(int, process.stdout.decode("utf-8").split("\n")[0].split(",")))
 
-    if modifier == 1:
+    if modifier == "bounce":
         modified_sizes = modifier_bounce(frame_count, width, height, min_y, ease=ease)
-    elif modifier == 2:
+    elif modifier == "shrink":
         modified_sizes = modifier_shrink(frame_count, width, height, min_y, ease=ease)
-    elif modifier == 3:
+    elif modifier == "random":
         modified_sizes = modifier_random(frame_count, width, height, min_x, min_y)
 
     pool = multiprocessing.Pool(processes=threads)
@@ -352,9 +350,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-m",
         "--modifier",
-        type=int,
+        type=str,
         help="Choice of video modifier option.",
-        choices=range(1, 4),
+        choices=("bounce", "shrink", "random"),
         required=True,
     )
     parser.add_argument(
