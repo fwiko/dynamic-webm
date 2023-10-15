@@ -6,7 +6,6 @@ import re
 import shutil
 import string
 import subprocess
-from timeit import default_timer as timer
 
 import numpy as np
 from PIL import Image
