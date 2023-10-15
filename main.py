@@ -218,7 +218,7 @@ def convert_frame(details: tuple) -> None:
             "-pix_fmt",
             "yuva420p",
             "-deadline",
-            "good"
+            "good",
             frame_path[:-4] + ".webm",
         ]
     )
