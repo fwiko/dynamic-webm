@@ -72,23 +72,6 @@ def modifier_shrink(frames: int, width: int, height: int, min_y: float, *, ease:
     return modified
 
 
-def modifier_vanish(frames: int, width: int, height: int) -> list[float]:
-    """Designed to a make the video "disappear" as soon as it starts.
-
-
-    Args:
-        frames (int): Total number of frames in the video.
-        width (int): Original width of the video.
-        height (int): Original height of the video.
-
-    Returns:
-        list[float]: A list of tuples containing the modified width and height of each frame.
-    """
-    modified = [(width, height)] + [[1, 1]] * (frames - 1)
-
-    return modified
-
-
 def modifier_random(frames: int, width: int, height: int, min_x: float, min_y: float) -> list[float]:
     """Designed to rapidly change the dimensions of the video.
 
@@ -202,8 +185,6 @@ def resize_frames(
     elif modifier == 2:
         modified_sizes = modifier_shrink(frame_count, width, height, min_y, ease=ease)
     elif modifier == 3:
-        modified_sizes = modifier_vanish(frame_count, width, height)
-    elif modifier == 4:
         modified_sizes = modifier_random(frame_count, width, height, min_x, min_y)
 
     pool = multiprocessing.Pool(processes=threads)
@@ -373,7 +354,7 @@ if __name__ == "__main__":
         "--modifier",
         type=int,
         help="Choice of video modifier option.",
-        choices=range(1, 5),
+        choices=range(1, 4),
         required=True,
     )
     parser.add_argument(
