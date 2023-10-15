@@ -198,7 +198,7 @@ def convert_frame(details: tuple) -> None:
     Args:
         details (tuple): A tuple containing the path to the frame and the frame rate of the video.
     """
-    frame_path, frame_rate, quality = details
+    frame_path, frame_rate = details
 
     subprocess.run(
         [
@@ -216,8 +216,8 @@ def convert_frame(details: tuple) -> None:
             "libvpx-vp9",
             "-pix_fmt",
             "yuva420p",
-            "-crf",
-            quality,
+            "-deadline",
+            "realtime",
             frame_path[:-4] + ".webm",
         ]
     )
@@ -225,19 +225,18 @@ def convert_frame(details: tuple) -> None:
     os.remove(frame_path)
 
 
-def convert_frames(frame_dir: str, frame_rate: str, threads: int, quality: int) -> None:
+def convert_frames(frame_dir: str, frame_rate: str, threads: int) -> None:
     """Convert all frames to WEBM format. Uses multiprocessing with the convert_frame function.
 
     Args:
         frame_dir (str): Directory of the deconstructed video frames.
         frame_rate (str): Frame rate of the input video.
         threads (int): Number of Threads/Workers to use when converting frames.
-        quality (int): Quality of the output video (0 = lossless, 51 = worst possible quality. defaults to 23)
     """
     pool = multiprocessing.Pool(processes=threads)
     pool.map(
         convert_frame,
-        [(os.path.join(frame_dir, f), frame_rate, str(quality)) for f in os.listdir(frame_dir)],
+        [(os.path.join(frame_dir, f), frame_rate) for f in os.listdir(frame_dir)],
     )
 
 
@@ -321,7 +320,7 @@ def main(args: argparse.Namespace) -> None:
     resize_frames("./temp/frames", args.modifier, args.input, args.threads, args.minwidth, args.minheight, args.ease)
 
     print("[+] Converting Frames...")
-    convert_frames("./temp/frames", frame_rate, args.threads, args.quality)
+    convert_frames("./temp/frames", frame_rate, args.threads)
 
     with open("./temp/input.txt", "w+") as file:
         file.write("\n".join([f"file '{os.path.join('frames', p)}'" for p in os.listdir("./temp/frames")]))
@@ -378,15 +377,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Enable smooth transitions for the bounce and shrink modifiers.",
     )
-    parser.add_argument(
-        "-q",
-        "--quality",
-        type=int,
-        default=23,
-        help="Set the quality of the output video (0 = lossless, 51 = worst possible quality. defaults to 23).",
-        choices=range(0, 52)    
-    )
-
+    
     args = parser.parse_args()
 
     if not (0 <= args.minwidth <= 100) or not (0 <= args.minheight <= 100):
