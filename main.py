@@ -6,6 +6,7 @@ import re
 import shutil
 import string
 import subprocess
+from timeit import default_timer as timer
 
 import numpy as np
 from PIL import Image
@@ -217,7 +218,7 @@ def convert_frame(details: tuple) -> None:
             "-pix_fmt",
             "yuva420p",
             "-deadline",
-            "realtime",
+            "good"
             frame_path[:-4] + ".webm",
         ]
     )
@@ -377,7 +378,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Enable smooth transitions for the bounce and shrink modifiers.",
     )
-    
+
     args = parser.parse_args()
 
     if not (0 <= args.minwidth <= 100) or not (0 <= args.minheight <= 100):
